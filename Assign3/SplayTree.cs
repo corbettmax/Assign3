@@ -3,7 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -37,8 +40,8 @@ namespace Assign3
         // Read/write properties
 
         public T Item { get; set; }
-        public Node<T> Left { get; set; }
-        public Node<T> Right { get; set; }
+        public Node<T>? Left { get; set; }
+        public Node<T>? Right { get; set; }
 
         public Node(T item)
         {
@@ -56,7 +59,7 @@ namespace Assign3
 
     class SplayTree<T> : ISearchable<T> where T : IComparable
     {
-        private Node<T> root;                // Reference to the root of a splay tree
+        private Node<T>? root;                // Reference to the root of a splay tree
 
         // Constructor
         // Initializes an empty splay tree
@@ -98,80 +101,91 @@ namespace Assign3
         }
 
         // Splay
-        // Splays (brings) item to the top of the subtree rooted at curr
-        // If item is not found, the last item visited is splayed to the top the subtree rooted at curr 
-        // Worst case time complexity:  O(n)
+        // Splays node p to the root of the tree using stack S. The stack is used to retrace the
+        // access path and determine the types of rotations.
+        // Worst case time complexity:  
 
-        private Node<T> Splay(T item, Node<T> curr)
+        private void Splay(Node<T> p, Stack<Node<T>> S)
         {
 
-            // Terminating conditions (item not found or found)
-            if (curr == null || item.CompareTo(curr.Item) == 0)
-                return curr;
+            // bottom is lowest, middle is above bottom, top is above middle
+            Node<T> top;
+            Node<T> middle;
+            Node<T> bottom;
 
-            // Determine where the path heads down the splay tree
 
-            // Item is in left subtree
-            if (item.CompareTo(curr.Item) < 0)
+
+            if (S.Count != 0)
             {
-                // Item not found
-                if (curr.Left == null)
-                    return curr;
+                bottom = S.Pop();
 
-                // Right-Right
-                if (item.CompareTo(curr.Left.Item) < 0)
+                if (S.Count % 2 == 1) //Odd start requires single rotation
                 {
-                    // Splay item to the root of left-left
-                    curr.Left.Left = Splay(item, curr.Left.Left);
+                    middle = S.Pop();
 
-                    // Rotate right at the root
-                    curr = RightRotate(curr);
+                    if (bottom.Item.CompareTo(middle.Item) > 0) //Lower node to right of upper node
+                    {
+                        bottom = LeftRotate(middle);
+                    }
+                    else if (bottom.Item.CompareTo(middle.Item) < 0) //Lower node to left of upper node
+                    {
+                        bottom = RightRotate(middle);
+                    }
                 }
-                else
-                // Left-Right
-                if (item.CompareTo(curr.Left.Item) > 0)
+
+
+                while (S.Count >= 2)
                 {
-                    // Splay item to the root of left-right
-                    curr.Left.Right = Splay(item, curr.Left.Right);
 
-                    // Rotate left (if possible) at the root of the left subtree
-                    if (curr.Left.Right != null)
-                        curr.Left = LeftRotate(curr.Left);
+                    middle = S.Pop();
+
+                    // Connect newly rotated node to the node above it
+                    if (bottom.Item.CompareTo(middle.Item) < 0)
+                        middle.Left = bottom;
+                    else if (bottom.Item.CompareTo(middle.Item) > 0)
+                        middle.Left = bottom;
+
+                    top = S.Pop();
+
+
+                    if (middle.Item.CompareTo(top.Item) < 0) //Middle is left of top
+                    {
+                        if (bottom.Item.CompareTo(middle.Item) < 0) //Bottom is left of middle is left of top
+                        {
+                            //Right-Right
+                            bottom = RightRotate(RightRotate(top));
+                        }
+                        else //Bottom is right of middle is left of top
+                        {
+                            //Left-Right
+                            bottom = LeftRotate(middle);
+                            top.Left = bottom;
+                            bottom = RightRotate(top);
+                        }
+
+                    }
+                    else if (middle.Item.CompareTo(top.Item) > 0) //Middle is right of top
+                    {
+                        if (bottom.Item.CompareTo(middle.Item) > 0) //Bottom is right of middle is right of top
+                        {
+                            //Left-Left
+                            bottom = LeftRotate(LeftRotate(top));
+                        }
+                        else //Bottom is left of middle is right of top
+                        {
+                            //Right-Left
+                            bottom = RightRotate(middle);
+                            top.Right = bottom;
+                            bottom = LeftRotate(top);
+                        }
+                    }
+
                 }
-                // Rotate right (if possible) at the root
-                return (curr.Left == null) ? curr : RightRotate(curr);
+
+                root = bottom;
             }
-
-            // Item is in right subtree (mirror image of the code)
             else
-            {
-                // Item not found
-                if (curr.Right == null)
-                    return curr;
-
-                // Right-Left
-                if (item.CompareTo(curr.Right.Item) < 0)
-                {
-                    // Splay item to the root of right-left
-                    curr.Right.Left = Splay(item, curr.Right.Left);
-
-                    // Rotate right (if possible) at the root of the right subtree
-                    if (curr.Right.Left != null)
-                        curr.Right = RightRotate(curr.Right);
-                }
-                else
-                // Left-Left
-                if (item.CompareTo(curr.Right.Item) > 0)
-                {
-                    // Splay item to the root of right-right
-                    curr.Right.Right = Splay(item, curr.Right.Right);
-
-                    // Rotate left at the root
-                    curr = LeftRotate(curr);
-                }
-                // Rotate left (if possible) at the root 
-                return (curr.Right == null) ? curr : LeftRotate(curr);
-            }
+                throw new Exception("Empty tree");
         }
 
         // Public Insert
@@ -189,34 +203,9 @@ namespace Assign3
                 root = p;                              // Create a new root at p
             else
             {
-                root = Splay(item, root);             // Splay item to the root
-
-                // Item not in the splay tree
-                if (item.CompareTo(root.Item) != 0)
-                {
-
-                    // Item is less than root
-                    if (item.CompareTo(root.Item) < 0)
-                    {
-                        p.Right = root;                    // Set right child of p to root
-                        p.Left = root.Left;                // Set left child of p to root.Left
-                        root.Left = null;
-                    }
-                    else
-
-                    // Item is greater than root
-                    if (item.CompareTo(root.Item) > 0)
-                    {
-                        p.Left = root;                     // Set left child of p to root
-                        p.Right = root.Right;              // Set right child of p to root.Right
-                        root.Right = null;
-                    }
-
-                    // Sets p as the new root
-                    root = p;
-                }
-                else
-                    throw new InvalidOperationException("Duplicate item");
+                Access(item); //Search for item
+                Stac
+                
             }
         }
 
@@ -333,6 +322,37 @@ namespace Assign3
                 Print(node.Left, indent + 3);
             }
         }
+
+        // Private Access
+        // Returns the nodes in reverse order along the access path from the root to the last node
+        // accessed. In the case of a successful insertion, the last node contains the inserted item.
+        private Stack<Node<T>> Access(T item)
+        {
+            Stack<Node<T>> stack = new Stack<Node<T>>();
+
+            if (root != null) // Tree not empty
+            {
+                Node<T> curr = root;
+                stack.Push(curr); // Add root to stack
+
+                while (item.CompareTo(curr.Item) != 0 || (curr.Left == null && curr.Right == null)) // Repeat until item found or empty node
+                {
+
+                    if (curr.Left != null && curr.Item.CompareTo(item) > 0) // Item is less than current node
+                    {
+                        curr = curr.Left;
+                        stack.Push(curr);
+                    }
+                    else if (curr.Right != null && curr.Item.CompareTo(item) < 0) //Item is greater than current node
+                    {
+                        curr = curr.Right;
+                        stack.Push(curr);
+                    }
+                }
+            }
+            return stack;
+        }
+
     }
 
 }
