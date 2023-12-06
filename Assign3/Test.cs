@@ -39,6 +39,7 @@ public class Test
         SplayTree<int> treeclone = tree.Clone();
         treeclone.Print();
         Console.WriteLine(treeclone.Equals(tree));
+        Console.WriteLine(treeclone.Equals(tree2));
 
 
         /*

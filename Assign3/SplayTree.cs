@@ -419,10 +419,10 @@ namespace Assign3
         private static bool BoolPreorder(Node<T>? node1, Node<T>? node2)
         {
 
-            if (node1 != node2) 
+            if (node1 != node2)
                 return false;
 
-            if (node1 == node2 == null)
+            if (node1 == null || node2 == null)
                 return true;
 
             if (BoolPreorder(node1.Left, node2.Left) == false)
