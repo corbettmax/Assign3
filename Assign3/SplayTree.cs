@@ -1,5 +1,8 @@
-﻿//Splay tree Assignment
-//COIS 2020
+﻿//COIS-2020H Assignment 3
+//By:
+//Max Corbett (0787791)
+//Nick Fraga (0765518)
+//Drew Goettsche (0767601)
 
 using System;
 using System.Collections.Generic;
@@ -9,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Assign3
 {
@@ -101,35 +105,33 @@ namespace Assign3
         }
 
         // Splay
-        // Splays node p to the root of the tree using stack S. The stack is used to retrace the
-        // access path and determine the types of rotations.
+        // Splays last node accessed to the root of the tree using stack S. The stack is
+        // used to retrace the access path and determine the types of rotations.
         // Worst case time complexity:  
 
-        private void Splay(Node<T> p, Stack<Node<T>> S)
+        private void Splay(Stack<Node<T>> S)
         {
+            if (S.Count == 0)
+                throw new Exception("Empty tree");
 
-            // bottom is lowest, middle is above bottom, top is above middle
+            // target lowest, middle is above target, top is above middle
             Node<T> top;
             Node<T> middle;
-            Node<T> bottom;
+            Node<T> target;
 
-
-
-            if (S.Count != 0)
-            {
-                bottom = S.Pop();
-
-                if (S.Count % 2 == 1) //Odd start requires single rotation
+            
+                target = S.Pop();
+                if (S.Count % 2 == 1) //Even start requires single rotation
                 {
                     middle = S.Pop();
 
-                    if (bottom.Item.CompareTo(middle.Item) > 0) //Lower node to right of upper node
+                    if (target.Item.CompareTo(middle.Item) > 0) //Lower node to right of upper node
                     {
-                        bottom = LeftRotate(middle);
+                        target = LeftRotate(middle);
                     }
-                    else if (bottom.Item.CompareTo(middle.Item) < 0) //Lower node to left of upper node
+                    else if (target.Item.CompareTo(middle.Item) < 0) //Lower node to left of upper node
                     {
-                        bottom = RightRotate(middle);
+                        target = RightRotate(middle);
                     }
                 }
 
@@ -140,60 +142,58 @@ namespace Assign3
                     middle = S.Pop();
 
                     // Connect newly rotated node to the node above it
-                    if (bottom.Item.CompareTo(middle.Item) < 0)
-                        middle.Left = bottom;
-                    else if (bottom.Item.CompareTo(middle.Item) > 0)
-                        middle.Left = bottom;
+                    if (target.Item.CompareTo(middle.Item) < 0)
+                        middle.Left = target;
+                    else if (target.Item.CompareTo(middle.Item) > 0)
+                        middle.Right = target;
 
                     top = S.Pop();
 
 
                     if (middle.Item.CompareTo(top.Item) < 0) //Middle is left of top
                     {
-                        if (bottom.Item.CompareTo(middle.Item) < 0) //Bottom is left of middle is left of top
+                        if (target.Item.CompareTo(middle.Item) < 0) //Target is left of middle is left of top
                         {
                             //Right-Right
-                            bottom = RightRotate(RightRotate(top));
+                            target = RightRotate(RightRotate(top));
                         }
-                        else //Bottom is right of middle is left of top
+                        else //Target is right of middle is left of top
                         {
                             //Left-Right
-                            bottom = LeftRotate(middle);
-                            top.Left = bottom;
-                            bottom = RightRotate(top);
+                            target = LeftRotate(middle);
+                            top.Left = target;
+                            target = RightRotate(top);
                         }
 
                     }
                     else if (middle.Item.CompareTo(top.Item) > 0) //Middle is right of top
                     {
-                        if (bottom.Item.CompareTo(middle.Item) > 0) //Bottom is right of middle is right of top
+                        if (target.Item.CompareTo(middle.Item) > 0) //Target is right of middle is right of top
                         {
                             //Left-Left
-                            bottom = LeftRotate(LeftRotate(top));
+                            target = LeftRotate(middle);
+                            top.Right = target;
+                            target   = LeftRotate(top);
                         }
-                        else //Bottom is left of middle is right of top
+                        else //Target is left of middle is right of top
                         {
                             //Right-Left
-                            bottom = RightRotate(middle);
-                            top.Right = bottom;
-                            bottom = LeftRotate(top);
+                            target = RightRotate(middle);
+                            top.Right = target  ;
+                            target = LeftRotate(top);
                         }
                     }
 
                 }
 
-                root = bottom;
-            }
-            else
-                throw new Exception("Empty tree");
+                root = target;
         }
 
         // Public Insert
-        // adapted from https://www.geeksforgeeks.org/splay-tree-set-2-insert-delete/?ref=rp
 
-        // Inserts an item into a splay tree
-        // An exception is throw if the item is already in the tree
-        // Amortized time complexity:  O(log n)
+        // When an item is successfully inserted, it is splayed to the root. If a duplicate item is
+        // found, the duplicate item is splayed to the root.
+        // Amortized time complexity:  
 
         public void Insert(T item)
         {
@@ -203,8 +203,28 @@ namespace Assign3
                 root = p;                              // Create a new root at p
             else
             {
-                Access(item); //Search for item
-                Stac
+                Stack<Node<T>> S = Access(item); //Search for item
+                Splay(S); //Splay last node accessed
+                if (p.Item.CompareTo(root.Item) != 0) //Not a duplicate item
+                {
+                    if (p.Item.CompareTo(root.Item) < 0) // Item is less than root
+                    {
+                        // Create new root p
+                        p.Right = root;
+                        p.Left = root.Left;
+                        root.Left = null;
+                    }
+                    else if (p.Item.CompareTo(root.Item) > 0) // Item is greater than root
+                    {
+                        // Create new root p
+                        p.Left = root;
+                        p.Right = root.Right;
+                        root.Right = null;
+                    }
+
+                    // Sets p as the new root
+                    root = p;
+                }
                 
             }
         }
@@ -222,7 +242,9 @@ namespace Assign3
 
             if (root != null)                          // Tree not empty (else do nothing)
             {
-                root = Splay(item, root);              // Splay item to the root
+                Stack<Node<T>> S = Access(item); //Search for item
+                Splay(S);                        //Splay last node accessed to root
+
                 if (item.CompareTo(root.Item) == 0)    // Item found at root (else do nothing)
                 {
                     if (root.Left == null)             // No left child
@@ -230,8 +252,15 @@ namespace Assign3
                     else
                     {
                         temp = root;                   // Store the old root
-                        root = Splay(item, root.Left); // New root is the maximum child of left subtree
-                                                       // Note that the last item visited is the maximum item
+
+                        Node<T> p = root.Left;
+                        S.Push(p);
+                        while (p.Right != null) //Keep going down the right of the left subtree
+                        {
+                            p = p.Right;
+                            S.Push(p);
+                        }
+                        Splay(S); // New root is the maximum child of left subtree
                         root.Right = temp.Right;       // Connect new root with the right subtree
                     }
                     return true;
@@ -253,7 +282,8 @@ namespace Assign3
                 return false;
             else
             {
-                root = Splay(item, root);              // Splay item to the root
+                Stack<Node<T>> S = Access(item); //Search for item
+                Splay(S); //Splay last node accessed to root
                 return item.CompareTo(root.Item) == 0; // Compare item with that at the root
             }
         }
@@ -335,7 +365,10 @@ namespace Assign3
                 Node<T> curr = root;
                 stack.Push(curr); // Add root to stack
 
-                while (item.CompareTo(curr.Item) != 0 || (curr.Left == null && curr.Right == null)) // Repeat until item found or empty node
+                if (root.Left == null && root.Right == null)
+                    return stack;
+
+                while (item.CompareTo(curr.Item) != 0 || !(curr.Left == null && curr.Right == null)) // Repeat until item found or empty node
                 {
 
                     if (curr.Left != null && curr.Item.CompareTo(item) > 0) // Item is less than current node
@@ -348,9 +381,73 @@ namespace Assign3
                         curr = curr.Right;
                         stack.Push(curr);
                     }
+                    else
+                    {
+                        return stack;
+                    }
                 }
             }
             return stack;
+        }
+
+        // Returns a deep copy of the current splay tree using preorder traversal.
+        public SplayTree<T> Clone()
+        {
+            SplayTree<T> clone = new SplayTree<T>();
+
+            clone.root = root;
+
+            //Visit root
+            Preorder(root);
+
+            return clone;
+
+        }
+
+
+        //Preorder traversal
+        private static void Preorder(Node<T>? node)
+        {
+            if (node == null)
+                return;
+
+            Preorder(node.Left);
+            Preorder(node.Right);
+        }
+
+        //Preorder traversal
+        private static bool BoolPreorder(Node<T>? node1, Node<T>? node2)
+        {
+
+            if (node1 != node2) 
+                return false;
+
+            if (node1 == node2 == null)
+                return true;
+
+            if (BoolPreorder(node1.Left, node2.Left) == false)
+                return false;
+            if (BoolPreorder(node1.Right, node2.Right) == false)
+                return false;
+            return true;
+        }
+
+
+        //Returns true if t is an exact copy of the current splay tree; false otherwise.
+        public override bool Equals(object? t)
+        {
+            if (t.GetType() != typeof(SplayTree<T>))
+                return false;
+
+            SplayTree<T>? tree = t as SplayTree<T>;
+
+
+            if (BoolPreorder(tree.root, root) == false)
+            {
+                return false;
+            }
+            else
+                return true;
         }
 
     }

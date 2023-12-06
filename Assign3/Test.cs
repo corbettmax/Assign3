@@ -22,7 +22,24 @@ public class Test
         tree.Insert(75);
         tree.Insert(8);
         tree.Insert(25);
+        Console.WriteLine(tree.Contains(50));
         tree.Print();
+        tree.Remove(50);
+        tree.Remove(20);
+        tree.Print();
+        Console.WriteLine(tree.Contains(50));
+
+        SplayTree<int> tree2 = new SplayTree<int>();
+        tree2.Insert(50);
+        tree2.Insert(20);
+        tree2.Insert(65);
+        tree2.Insert(60);
+        tree2.Insert(10);
+
+        SplayTree<int> treeclone = tree.Clone();
+        treeclone.Print();
+        Console.WriteLine(treeclone.Equals(tree));
+
 
         /*
               75
