@@ -24,7 +24,9 @@ public class Test
         tree.Insert(25);
         Console.WriteLine(tree.Contains(50));
         tree.Print();
-        tree.Remove(50);
+        tree.Undo();
+        tree.Print();
+        /*tree.Remove(50);
         tree.Remove(20);
         tree.Print();
         Console.WriteLine(tree.Contains(50));
@@ -40,25 +42,25 @@ public class Test
         treeclone.Print();
         Console.WriteLine(treeclone.Equals(tree));
         Console.WriteLine(treeclone.Equals(tree2));
+        Console.WriteLine(tree.Equals(tree2));*/
 
+        /*True
+               75
+           70
+                 65
+                    60
+              55
+        50
+                       45
+                    40
+                 35
+              30
+           25
+              20
+                       15
+                    10
+                 8
+                    5*/
 
-        /*
-              75
-   70
-            65
-                  60
-               55
-                     50
-                        45
-                  40
-         35
-      30
-25
-   20
-         15
-            10
-      8
-         5
-        */
     }
 }

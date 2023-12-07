@@ -119,74 +119,74 @@ namespace Assign3
             Node<T> middle;
             Node<T> target;
 
-            
-                target = S.Pop();
-                if (S.Count % 2 == 1) //Even start requires single rotation
-                {
-                    middle = S.Pop();
 
-                    if (target.Item.CompareTo(middle.Item) > 0) //Lower node to right of upper node
+            target = S.Pop();
+            if (S.Count % 2 == 1) //Even start requires single rotation
+            {
+                middle = S.Pop();
+
+                if (target.Item.CompareTo(middle.Item) > 0) //Lower node to right of upper node
+                {
+                    target = LeftRotate(middle);
+                }
+                else if (target.Item.CompareTo(middle.Item) < 0) //Lower node to left of upper node
+                {
+                    target = RightRotate(middle);
+                }
+            }
+
+
+            while (S.Count >= 2)
+            {
+
+                middle = S.Pop();
+
+                // Connect newly rotated node to the node above it
+                if (target.Item.CompareTo(middle.Item) < 0)
+                    middle.Left = target;
+                else if (target.Item.CompareTo(middle.Item) > 0)
+                    middle.Right = target;
+
+                top = S.Pop();
+
+
+                if (middle.Item.CompareTo(top.Item) < 0) //Middle is left of top
+                {
+                    if (target.Item.CompareTo(middle.Item) < 0) //Target is left of middle is left of top
                     {
+                        //Right-Right
+                        target = RightRotate(RightRotate(top));
+                    }
+                    else //Target is right of middle is left of top
+                    {
+                        //Left-Right
                         target = LeftRotate(middle);
+                        top.Left = target;
+                        target = RightRotate(top);
                     }
-                    else if (target.Item.CompareTo(middle.Item) < 0) //Lower node to left of upper node
-                    {
-                        target = RightRotate(middle);
-                    }
+
                 }
-
-
-                while (S.Count >= 2)
+                else if (middle.Item.CompareTo(top.Item) > 0) //Middle is right of top
                 {
-
-                    middle = S.Pop();
-
-                    // Connect newly rotated node to the node above it
-                    if (target.Item.CompareTo(middle.Item) < 0)
-                        middle.Left = target;
-                    else if (target.Item.CompareTo(middle.Item) > 0)
-                        middle.Right = target;
-
-                    top = S.Pop();
-
-
-                    if (middle.Item.CompareTo(top.Item) < 0) //Middle is left of top
+                    if (target.Item.CompareTo(middle.Item) > 0) //Target is right of middle is right of top
                     {
-                        if (target.Item.CompareTo(middle.Item) < 0) //Target is left of middle is left of top
-                        {
-                            //Right-Right
-                            target = RightRotate(RightRotate(top));
-                        }
-                        else //Target is right of middle is left of top
-                        {
-                            //Left-Right
-                            target = LeftRotate(middle);
-                            top.Left = target;
-                            target = RightRotate(top);
-                        }
-
+                        //Left-Left
+                        target = LeftRotate(middle);
+                        top.Right = target;
+                        target = LeftRotate(top);
                     }
-                    else if (middle.Item.CompareTo(top.Item) > 0) //Middle is right of top
+                    else //Target is left of middle is right of top
                     {
-                        if (target.Item.CompareTo(middle.Item) > 0) //Target is right of middle is right of top
-                        {
-                            //Left-Left
-                            target = LeftRotate(middle);
-                            top.Right = target;
-                            target   = LeftRotate(top);
-                        }
-                        else //Target is left of middle is right of top
-                        {
-                            //Right-Left
-                            target = RightRotate(middle);
-                            top.Right = target  ;
-                            target = LeftRotate(top);
-                        }
+                        //Right-Left
+                        target = RightRotate(middle);
+                        top.Right = target;
+                        target = LeftRotate(top);
                     }
-
                 }
 
-                root = target;
+            }
+
+            root = target;
         }
 
         // Public Insert
@@ -204,33 +204,26 @@ namespace Assign3
             else
             {
                 Stack<Node<T>> S = Access(item); //Search for item
-                Splay(S); //Splay last node accessed
-                if (p.Item.CompareTo(root.Item) != 0) //Not a duplicate item
+                Node<T>top = S.Peek();
+                if (p.Item.CompareTo(top.Item) != 0) //Not a duplicate item
                 {
-                    if (p.Item.CompareTo(root.Item) < 0) // Item is less than root
+                    if (p.Item.CompareTo(top.Item) < 0) // Item is less than root
                     {
-                        // Create new root p
-                        p.Right = root;
-                        p.Left = root.Left;
-                        root.Left = null;
+                        top.Left = p;
                     }
-                    else if (p.Item.CompareTo(root.Item) > 0) // Item is greater than root
+                    else if (p.Item.CompareTo(top.Item) > 0) // Item is greater than root
                     {
-                        // Create new root p
-                        p.Left = root;
-                        p.Right = root.Right;
-                        root.Right = null;
+                        top.Right = p;
                     }
+                    
+                    // add P to stack
+                    S.Push(p);
 
-                    // Sets p as the new root
-                    root = p;
                 }
-                
+                Splay(S); //Splay node
+
             }
         }
-
-        // Public Remove
-        // adapted from https://www.geeksforgeeks.org/splay-tree-set-3-delete/?ref=rp
 
         // Remove an item from a splay tree
         // Nothing is performed if the item is not found or the tree is empty
@@ -335,7 +328,7 @@ namespace Assign3
         {
             int indent = 0;
 
-            Print(root, indent);             // Calls private, recursive Print
+            Print(root, indent);  // Calls private, recursive Print
             Console.WriteLine();
         }
 
@@ -448,6 +441,43 @@ namespace Assign3
             }
             else
                 return true;
+        }
+
+
+        public SplayTree<T> Undo()
+        {
+            //
+            if (root == null){
+                return null;
+            }
+
+            SplayTree<T> original = Clone();
+            SplayTree<T> temp = null;
+
+            while (root.Left != null || root.Right != null){
+                temp = Clone();
+
+                if (root.Left != null) {
+                    RightRotate(root);
+                    if (root.Left == null && root.Right == null){
+                        break;
+                    }
+                }
+                if (root.Right != null) {
+                    LeftRotate(root);
+                    if (root.Left == null && root.Right == null){
+                        break;
+                    }
+                }
+            }
+
+            if (root.Left == null && root.Right == null){
+                root = null;
+            } else {
+                root = original.root;
+            }
+
+            return this;
         }
 
     }
